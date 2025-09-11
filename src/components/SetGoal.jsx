@@ -14,8 +14,11 @@ const SetGoal = () => {
   };
 
   const handleNext = () => {
-    // Update the step in the store
-    setStep(2);
+    // Simulate wallet popup animation
+    const modal = document.getElementById('wallet-modal');
+    if (modal) {
+      modal.style.display = 'block';
+    }
   };
 
   const tokenOptions = ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC'];
@@ -129,7 +132,7 @@ const SetGoal = () => {
         onClick={handleNext}
         className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
       >
-        Next: Sign Intent :
+        Next: Sign Intent
       </button>
     </motion.div>
   );
