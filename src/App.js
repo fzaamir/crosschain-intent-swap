@@ -69,11 +69,14 @@ const App = () => {
         newState.step = 2;
       } else if (newState.step === 2) {
         newState.signing = true;
+        
+        // Set timeout for signing animation
         setTimeout(() => {
           setState(prev => ({
             ...prev,
             signing: false,
-            signed: true
+            signed: true,
+            step: 3
           }));
         }, 1500);
       } else if (newState.step === 3) {
