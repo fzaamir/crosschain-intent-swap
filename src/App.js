@@ -23,7 +23,7 @@ const App = () => {
         chainOut: 'Arbitrum',
         amountIn: '100',
         minAmountOut: '0.05',
-        expiry: '1 min'
+        expiry: '30 seconds'
       },
       signing: false,
       signed: false,
@@ -73,12 +73,11 @@ const App = () => {
           setState(prev => ({
             ...prev,
             signing: false,
-            signed: true,
-            step: 3
+            signed: true
           }));
         }, 1500);
       } else if (newState.step === 3) {
-        // Simulate solvers competing - now much faster (5-10 seconds)
+        // Simulate solvers competing - now much faster (3-5 seconds)
         const mockSolvers = [
           { id: 1, name: 'UniswapX', price: '0.0512 ETH', time: '0.8s' },
           { id: 2, name: 'CoW Swap', price: '0.0508 ETH', time: '0.6s' },
@@ -93,13 +92,20 @@ const App = () => {
         
         newState.solvers = sortedSolvers;
         newState.bestSolver = sortedSolvers[0];
-        newState.step = 4;
+        
+        // Automatically move to next step after 3-5 seconds
+        setTimeout(() => {
+          setState(prev => ({
+            ...prev,
+            step: 4
+          }));
+        }, 3000 + Math.random() * 2000); // 3-5 seconds
       } else if (newState.step === 4) {
         // Simulate settlement with 90% success rate, 10% timeout
         const isSuccess = Math.random() > 0.1;
         
-        // Faster execution: 5-10 seconds for all expiry times
-        const executionTime = Math.random() * 5000 + 5000; // 5-10 seconds
+        // Faster execution: 3-7 seconds for all expiry times
+        const executionTime = Math.random() * 4000 + 3000; // 3-7 seconds
         
         // Add API call animation
         const newApiCall = {
