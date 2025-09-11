@@ -90,29 +90,9 @@ const App = () => {
     }
   };
 
-  // Handle next step
-  const handleNext = useCallback(() => {
-    if (state.step === 1) {
-      setState(prev => ({
-        ...prev,
-        step: 2
-      }));
-    } else if (state.step === 2) {
-      setState(prev => ({
-        ...prev,
-        signing: true
-      }));
-      
-      // Set timeout for signing animation
-      setTimeout(() => {
-        setState(prev => ({
-          ...prev,
-          signing: false,
-          signed: true,
-          step: 3
-        }));
-      }, 1500);
-    } else if (state.step === 3) {
+  // Auto-start competition when entering Step 3
+  useEffect(() => {
+    if (state.step === 3 && state.solvers.length === 0) {
       // Simulate solvers competing
       const mockSolvers = [
         { id: 1, name: 'UniswapX', price: '0.0512 ETH', time: '0.8s' },
@@ -134,14 +114,40 @@ const App = () => {
       
       // Automatically move to next step after execution time
       const executionTime = getExecutionTime(state.intentData.expiry);
-      console.log("Setting timeout for step 3->4 transition:", executionTime);
-      setTimeout(() => {
-        console.log("Executing step 3->4 transition");
+      const timeoutId = setTimeout(() => {
         setState(prev => ({
           ...prev,
           step: 4
         }));
       }, executionTime);
+      
+      // Cleanup function to clear timeout if component unmounts
+      return () => clearTimeout(timeoutId);
+    }
+  }, [state.step, state.solvers.length, state.intentData.expiry]);
+
+  // Handle next step (simplified)
+  const handleNext = useCallback(() => {
+    if (state.step === 1) {
+      setState(prev => ({
+        ...prev,
+        step: 2
+      }));
+    } else if (state.step === 2) {
+      setState(prev => ({
+        ...prev,
+        signing: true
+      }));
+      
+      // Set timeout for signing animation
+      setTimeout(() => {
+        setState(prev => ({
+          ...prev,
+          signing: false,
+          signed: true,
+          step: 3
+        }));
+      }, 1500);
     } else if (state.step === 4) {
       // Simulate settlement with 90% success rate, 10% timeout
       const isSuccess = Math.random() > 0.1;
@@ -210,7 +216,7 @@ const App = () => {
         });
       }, settlementTime);
     }
-  }, [state.step, state.intentData, state.bestSolver]);
+  }, [state.step, state.intentData, state.bestSolver, state.swapHistory]);
 
   // Reset the demo
   const resetDemo = () => {
@@ -245,10 +251,9 @@ const App = () => {
   const chainOptions = ['Ethereum', 'Polygon', 'BNB Chain', 'Arbitrum', 'Optimism', 'Base'];
   const expiryOptions = ['30 seconds', '1 min', '5 min'];
 
-  // Progress bar width calculation (capped at 100%)
+  // Progress bar width calculation (capped at 100% using numbers)
   const progressWidth = useMemo(() => {
-    const width = `${(state.step / 4) * 100}%`;
-    return width > '100%' ? '100%' : width;
+    return `${Math.min((state.step / 4) * 100, 100)}%`;
   }, [state.step]);
 
   // Calculate gas savings
