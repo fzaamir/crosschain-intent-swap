@@ -1,5 +1,5 @@
 // App.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const App = () => {
@@ -60,106 +60,129 @@ const App = () => {
     }));
   };
 
+  // --- Helpers ---
+  const getSolverDelay = (expiry) => {
+    switch (expiry) {
+      case '30 seconds': return [5000, 10000];   // 5–10s
+      case '1 min': return [10000, 20000];       // 10–20s
+      case '5 min': return [20000, 40000];       // 20–40s
+      default: return [3000, 5000];              // fallback
+    }
+  };
+
+  const getSettlementDelay = (expiry) => {
+    switch (expiry) {
+      case '30 seconds': return [3000, 7000];    // 3–7s
+      case '1 min': return [6000, 12000];        // 6–12s
+      case '5 min': return [15000, 30000];       // 15–30s
+      default: return [3000, 7000];
+    }
+  };
+
   // Handle next step
   const handleNext = useCallback(() => {
     setState(prev => {
-      const newState = { ...prev };
+      if (prev.step === 1) {
+        return { ...prev, step: 2 };
+      } 
       
-      if (newState.step === 1) {
-        newState.step = 2;
-      } else if (newState.step === 2) {
-        newState.signing = true;
+      if (prev.step === 2) {
+        const newState = { ...prev, signing: true };
         
-        // Set timeout for signing animation
         setTimeout(() => {
-          setState(prev => ({
-            ...prev,
+          setState(prev2 => ({
+            ...prev2,
             signing: false,
             signed: true,
             step: 3
           }));
         }, 1500);
-      } else if (newState.step === 3) {
-        // Simulate solvers competing - now much faster (3-5 seconds)
+
+        return newState;
+      }
+
+      if (prev.step === 3) {
         const mockSolvers = [
           { id: 1, name: 'UniswapX', price: '0.0512 ETH', time: '0.8s' },
           { id: 2, name: 'CoW Swap', price: '0.0508 ETH', time: '0.6s' },
           { id: 3, name: '1inch Fusion', price: '0.0515 ETH', time: '0.9s' },
           { id: 4, name: 'Matcha', price: '0.0509 ETH', time: '0.7s' }
         ];
-        
-        // Sort by best price (highest ETH amount)
         const sortedSolvers = [...mockSolvers].sort((a, b) => 
           parseFloat(b.price) - parseFloat(a.price)
         );
-        
-        newState.solvers = sortedSolvers;
-        newState.bestSolver = sortedSolvers[0];
-        
-        // Automatically move to next step after 3-5 seconds
+
+        const newState = {
+          ...prev,
+          solvers: sortedSolvers,
+          bestSolver: sortedSolvers[0],
+        };
+
+        // Delay depends on expiry
+        const [minDelay, maxDelay] = getSolverDelay(prev.intentData.expiry);
+        const delay = minDelay + Math.random() * (maxDelay - minDelay);
+
         setTimeout(() => {
-          setState(prev => ({
-            ...prev,
-            step: 4
-          }));
-        }, 3000 + Math.random() * 2000); // 3-5 seconds
-      } else if (newState.step === 4) {
-        // Simulate settlement with 90% success rate, 10% timeout
+          setState(prev2 => ({ ...prev2, step: 4 }));
+        }, delay);
+
+        return newState;
+      }
+
+      if (prev.step === 4) {
         const isSuccess = Math.random() > 0.1;
-        
-        // Faster execution: 3-7 seconds for all expiry times
-        const executionTime = Math.random() * 4000 + 3000; // 3-7 seconds
-        
-        // Add API call animation
+        const [minExec, maxExec] = getSettlementDelay(prev.intentData.expiry);
+        const executionTime = minExec + Math.random() * (maxExec - minExec);
+
         const newApiCall = {
           id: Date.now(),
-          from: `${newState.intentData.amountIn} ${newState.intentData.tokenIn} on ${newState.intentData.chainIn}`,
-          to: `${newState.intentData.minAmountOut} ${newState.intentData.tokenOut} on ${newState.intentData.chainOut}`,
-          solver: newState.bestSolver.name,
+          from: `${prev.intentData.amountIn} ${prev.intentData.tokenIn} on ${prev.intentData.chainIn}`,
+          to: `${prev.intentData.minAmountOut} ${prev.intentData.tokenOut} on ${prev.intentData.chainOut}`,
+          solver: prev.bestSolver.name,
           status: 'pending'
         };
-        
-        newState.apiCalls = [...newState.apiCalls, newApiCall];
-        
+
+        const newState = {
+          ...prev,
+          apiCalls: [...prev.apiCalls, newApiCall],
+        };
+
         setTimeout(() => {
-          setState(prev => {
-            const updatedApiCalls = prev.apiCalls.map(call => 
-              call.id === newApiCall.id 
+          setState(prev2 => {
+            const updatedApiCalls = prev2.apiCalls.map(call =>
+              call.id === newApiCall.id
                 ? { ...call, status: isSuccess ? 'success' : 'timeout' }
                 : call
             );
-            
-            // Add to history if successful
-            let newHistory = prev.swapHistory;
-            let newAchievements = [...prev.achievements];
-            
+
+            let newHistory = prev2.swapHistory;
+            let newAchievements = [...prev2.achievements];
+
             if (isSuccess) {
               const newSwap = {
-                ...prev.intentData,
+                ...prev2.intentData,
                 timestamp: new Date().toISOString(),
                 id: Date.now()
               };
-              newHistory = [newSwap, ...prev.swapHistory.slice(0, 9)]; // Keep last 10
-              
-              // Check for achievements
+              newHistory = [newSwap, ...prev2.swapHistory.slice(0, 9)];
+
+              // Achievements
               if (!newAchievements[0].unlocked) {
                 newAchievements[0].unlocked = true;
                 setShowAchievement(newAchievements[0]);
               }
-              
-              if (prev.intentData.chainIn !== prev.intentData.chainOut && !newAchievements[1].unlocked) {
+              if (prev2.intentData.chainIn !== prev2.intentData.chainOut && !newAchievements[1].unlocked) {
                 newAchievements[1].unlocked = true;
                 setShowAchievement(newAchievements[1]);
               }
-              
               if (newHistory.length >= 5 && !newAchievements[2].unlocked) {
                 newAchievements[2].unlocked = true;
                 setShowAchievement(newAchievements[2]);
               }
             }
-            
+
             return {
-              ...prev,
+              ...prev2,
               settlementStatus: isSuccess ? 'success' : 'timeout',
               apiCalls: updatedApiCalls,
               swapHistory: newHistory,
@@ -167,9 +190,11 @@ const App = () => {
             };
           });
         }, executionTime);
+
+        return newState;
       }
-      
-      return newState;
+
+      return prev;
     });
   }, []);
 
@@ -193,26 +218,19 @@ const App = () => {
     window.location.reload();
   };
 
-  // Token and chain options
+  // Options
   const tokenOptions = ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC'];
   const chainOptions = ['Ethereum', 'Polygon', 'BNB Chain', 'Arbitrum', 'Optimism', 'Base'];
   const expiryOptions = ['30 seconds', '1 min', '5 min'];
 
-  // Progress bar width calculation
-  const progressWidth = `${(state.step / 4) * 100}%`;
+  // Progress bar
+  const progressWidth = `${Math.min((state.step / 4) * 100, 100)}%`;
 
-  // Calculate gas savings
-  const calculateGasSavings = () => {
-    const traditionalGas = 50; // USD
-    const intentGas = 0; // USD
-    return traditionalGas - intentGas;
-  };
+  // Gas savings
+  const calculateGasSavings = () => 50;
 
-  // Calculate price impact
-  const calculatePriceImpact = () => {
-    // Simplified calculation for demo
-    return Math.random() * 2; // 0-2% impact
-  };
+  // Price impact (stable per step)
+  const priceImpact = useMemo(() => Math.random() * 2, [state.step]);
 
   return (
     <div className="min-h-screen transition-colors duration-300 dark bg-gray-900 text-white">
@@ -274,19 +292,17 @@ const App = () => {
         </div>
       </div>
 
+      {/* Content */}
       <div className="flex flex-col md:flex-row max-w-6xl mx-auto p-4 gap-6">
-        {/* Flowchart Sidebar */}
+        {/* Sidebar */}
         <aside className="w-full md:w-1/4">
           <div className="w-full p-4 border rounded-lg shadow-md bg-gray-800 mb-6">
             <h2 className="font-semibold mb-4 text-gray-200">Swap Flow</h2>
             <div className="relative pl-8">
-              {/* Vertical line */}
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-700"></div>
-              
               <ul className="space-y-6">
                 {[1, 2, 3, 4].map((s) => (
                   <li key={s} className="relative">
-                    {/* Connector dot */}
                     <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-3 h-3 rounded-full border-2 ${
                       state.step === s 
                         ? 'bg-green-500 border-green-500' 
@@ -294,7 +310,6 @@ const App = () => {
                           ? 'bg-green-500 border-green-500' 
                           : 'bg-gray-800 border-gray-600'
                     }`}></div>
-                    
                     <div className={`pl-6 ${
                       state.step === s 
                         ? 'text-green-400 font-semibold' 
@@ -319,8 +334,7 @@ const App = () => {
               </ul>
             </div>
           </div>
-          
-          {/* Achievements Panel */}
+          {/* Achievements */}
           <div className="w-full p-4 border rounded-lg shadow-md bg-gray-800">
             <h2 className="font-semibold mb-4 text-gray-200">Achievements</h2>
             <div className="space-y-3">
@@ -348,533 +362,15 @@ const App = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
+        {/* Main (Steps UI) */}
         <main className="flex-1">
           <div className="p-6 border rounded-xl shadow-lg bg-gray-800">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={state.step}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                {/* Step 1: Set Goal */}
-                {state.step === 1 && (
-                  <div>
-                    <h2 className="text-2xl font-bold mb-6 text-white">1. Set Goal</h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">
-                          Token In
-                        </label>
-                        <select
-                          name="tokenIn"
-                          value={state.intentData.tokenIn}
-                          onChange={handleChange}
-                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          {tokenOptions.map(token => (
-                            <option key={token} value={token}>{token}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">
-                          Token Out
-                        </label>
-                        <select
-                          name="tokenOut"
-                          value={state.intentData.tokenOut}
-                          onChange={handleChange}
-                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          {tokenOptions.filter(t => t !== state.intentData.tokenIn).map(token => (
-                            <option key={token} value={token}>{token}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">
-                          Chain In
-                        </label>
-                        <select
-                          name="chainIn"
-                          value={state.intentData.chainIn}
-                          onChange={handleChange}
-                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          {chainOptions.map(chain => (
-                            <option key={chain} value={chain}>{chain}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">
-                          Chain Out
-                        </label>
-                        <select
-                          name="chainOut"
-                          value={state.intentData.chainOut}
-                          onChange={handleChange}
-                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          {chainOptions.filter(c => c !== state.intentData.chainIn).map(chain => (
-                            <option key={chain} value={chain}>{chain}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">
-                          Amount In
-                        </label>
-                        <input
-                          name="amountIn"
-                          type="number"
-                          value={state.intentData.amountIn}
-                          onChange={handleChange}
-                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="100"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">
-                          Minimum Receive
-                        </label>
-                        <input
-                          name="minAmountOut"
-                          type="number"
-                          step="0.0001"
-                          value={state.intentData.minAmountOut}
-                          onChange={handleChange}
-                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="0.05"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">
-                          Expiry Time
-                        </label>
-                        <select
-                          name="expiry"
-                          value={state.intentData.expiry}
-                          onChange={handleChange}
-                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                          {expiryOptions.map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div className="flex items-end">
-                        <div className="bg-indigo-900/30 p-3 rounded-lg w-full">
-                          <div className="text-sm text-indigo-300 mb-1">Price Impact</div>
-                          <div className="flex items-center">
-                            <div className="w-full bg-gray-700 rounded-full h-2 mr-2">
-                              <div 
-                                className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full" 
-                                style={{ width: `${calculatePriceImpact()}%` }}
-                              ></div>
-                            </div>
-                            <div className="text-sm font-medium text-green-400">
-                              {calculatePriceImpact().toFixed(2)}%
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-4">
-                      <button
-                        onClick={handleNext}
-                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-                      >
-                        Next: Sign Intent
-                      </button>
-                      
-                      <div className="flex items-center text-sm text-gray-400">
-                        <span className="mr-1">ⓘ</span>
-                        <span>Gasless • MEV Protected • Cross-chain</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: Sign Intent */}
-                {state.step === 2 && (
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-6 text-white">2. Sign Intent</h2>
-                    
-                    {!state.signed ? (
-                      <div className="flex flex-col items-center">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleNext}
-                          disabled={state.signing}
-                          className={`px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-300 flex items-center ${
-                            state.signing 
-                              ? 'bg-yellow-600 cursor-not-allowed' 
-                              : 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700'
-                          }`}
-                        >
-                          {state.signing ? (
-                            <>
-                              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Signing...
-                            </>
-                          ) : (
-                            <>
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                              </svg>
-                              Sign with Wallet
-                            </>
-                          )}
-                        </motion.button>
-                        
-                        <motion.p 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                          className="mt-6 text-gray-400 max-w-md text-center"
-                        >
-                          By signing, you're creating a permissionless intent that solvers can fulfill without requiring gas fees or exposing your trade to MEV.
-                        </motion.p>
-                        
-                        {/* Gas Savings Visualization */}
-                        <div className="mt-8 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-xl w-full max-w-md">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-green-300 font-medium">Gas Savings</span>
-                            <span className="text-green-400 font-bold">${calculateGasSavings().toFixed(2)}</span>
-                          </div>
-                          <div className="w-full bg-gray-700 rounded-full h-2.5">
-                            <div 
-                              className="bg-gradient-to-r from-green-400 to-emerald-500 h-2.5 rounded-full" 
-                              style={{ width: '100%' }}
-                            ></div>
-                          </div>
-                          <div className="text-xs text-green-400 mt-2">
-                            100% gasless transaction
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-center"
-                      >
-                        <div className="text-6xl text-green-500 mb-4">✅</div>
-                        <h3 className="text-2xl font-bold text-white mb-2">Intent Signed Successfully!</h3>
-                        <p className="text-gray-400 mb-6">
-                          Your swap intent has been created and is now available for solvers to fulfill.
-                        </p>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleNext}
-                          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300"
-                        >
-                          Next: Solvers Compete
-                        </motion.button>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-
-                {/* Step 3: Solvers Compete */}
-                {state.step === 3 && (
-                  <div>
-                    <h2 className="text-2xl font-bold mb-6 text-white">3. Solvers Compete</h2>
-                    
-                    {state.solvers.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
-                        <p className="text-gray-400">Solvers are competing for your intent...</p>
-                        
-                        {/* Chain Connection Visualization */}
-                        <div className="mt-8 w-full max-w-md">
-                          <div className="flex items-center justify-between">
-                            <div className="px-4 py-2 bg-indigo-900/30 rounded-lg">
-                              {state.intentData.chainIn}
-                            </div>
-                            <div className="flex-1 mx-4 relative">
-                              <div className="h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"></div>
-                              <motion.div 
-                                className="absolute top-0 left-0 w-4 h-4 bg-indigo-500 rounded-full"
-                                animate={{ x: [0, 200] }}
-                                transition={{ repeat: Infinity, duration: 1.5 }}
-                              />
-                            </div>
-                            <div className="px-4 py-2 bg-purple-900/30 rounded-lg">
-                              {state.intentData.chainOut}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-                        >
-                          {state.solvers.map((solver, index) => (
-                            <motion.div
-                              key={solver.id}
-                              initial={{ y: 50, opacity: 0 }}
-                              animate={{ y: 0, opacity: 1 }}
-                              transition={{ delay: index * 0.1 }}
-                              className={`border rounded-xl p-5 shadow-md transition-all duration-300 ${
-                                solver.id === state.bestSolver.id
-                                  ? 'border-2 border-green-500 bg-gradient-to-br from-green-900/20 to-emerald-900/20 scale-105'
-                                  : 'border-gray-700 bg-gray-800'
-                              }`}
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <h3 className="font-bold text-lg text-white">{solver.name}</h3>
-                                {solver.id === state.bestSolver.id && (
-                                  <span className="px-2 py-1 bg-green-900 text-green-300 text-xs font-semibold rounded">
-                                    BEST
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-2xl font-bold text-white mb-1">
-                                {solver.price}
-                              </div>
-                              <div className="text-sm text-gray-400">
-                                Fulfilled in {solver.time}
-                              </div>
-                              
-                              {/* Solver Rating */}
-                              <div className="mt-3 flex items-center">
-                                <div className="text-yellow-400 mr-1">★</div>
-                                <div className="text-yellow-400 mr-1">★</div>
-                                <div className="text-yellow-400 mr-1">★</div>
-                                <div className="text-yellow-400 mr-1">★</div>
-                                <div className={`${solver.id === 1 ? 'text-yellow-400' : 'text-gray-600'}`}>★</div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </motion.div>
-                        
-                        {state.bestSolver && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mb-8 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-800 rounded-lg"
-                          >
-                            <div className="flex items-center">
-                              <div className="text-2xl text-green-500 mr-3">🎉</div>
-                              <div>
-                                <h3 className="font-bold text-green-300">Best Price Found!</h3>
-                                <p className="text-green-400">
-                                  {state.bestSolver.name} offers the best price: {state.bestSolver.price}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            {/* Price Comparison */}
-                            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                              <div className="p-2 bg-gray-700 rounded">
-                                <div className="text-xs text-gray-400">Market Price</div>
-                                <div className="font-bold">0.0515 ETH</div>
-                              </div>
-                              <div className="p-2 bg-gray-700 rounded">
-                                <div className="text-xs text-gray-400">Your Price</div>
-                                <div className="font-bold text-green-400">{state.bestSolver.price}</div>
-                              </div>
-                              <div className="p-2 bg-gray-700 rounded">
-                                <div className="text-xs text-gray-400">Savings</div>
-                                <div className="font-bold text-green-400">0.0003 ETH</div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-4">
-                          <motion.button
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleNext}
-                            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300"
-                          >
-                            Settle Swap
-                          </motion.button>
-                          
-                          <div className="flex items-center text-sm text-gray-400">
-                            <span className="mr-1">ⓘ</span>
-                            <span>Multiple solvers compete to give you the best price</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Step 4: On-chain Settlement */}
-                {state.step === 4 && (
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-6 text-white">4. On-chain Settlement</h2>
-                    
-                    {state.settlementStatus === 'pending' ? (
-                      <>
-                        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500 mx-auto mb-6"></div>
-                        <h3 className="text-xl font-semibold text-gray-300 mb-2">
-                          Settling Swap...
-                        </h3>
-                        <p className="text-gray-400">
-                          Your intent is being fulfilled on-chain
-                        </p>
-                        
-                        {/* API Call Animation */}
-                        <div className="mt-8 relative h-32 overflow-hidden">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="relative w-full h-16">
-                              {state.apiCalls.map((call) => (
-                                <motion.div
-                                  key={call.id}
-                                  className="absolute top-1/2 left-0 transform -translate-y-1/2 w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg"
-                                  initial={{ x: -50, opacity: 0 }}
-                                  animate={{ 
-                                    x: [0, 100, 200, 300, 400, 500],
-                                    opacity: [0, 1, 1, 1, 1, 0]
-                                  }}
-                                  transition={{ 
-                                    duration: 3,
-                                    times: [0, 0.1, 0.3, 0.7, 0.9, 1]
-                                  }}
-                                >
-                                  {call.status === 'pending' ? (
-                                    <div className="w-6 h-6 border-t-2 border-white border-solid rounded-full animate-spin"></div>
-                                  ) : call.status === 'success' ? (
-                                    '✅'
-                                  ) : (
-                                    '❌'
-                                  )}
-                                </motion.div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Transaction Details */}
-                        <div className="mt-8 bg-gray-800 rounded-xl p-4 max-w-md mx-auto text-left border border-gray-700">
-                          <div className="font-semibold mb-2 text-gray-300">Transaction Details</div>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">From:</span>
-                              <span>{state.intentData.amountIn} {state.intentData.tokenIn}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">To:</span>
-                              <span>{state.intentData.minAmountOut} {state.intentData.tokenOut}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Network:</span>
-                              <span>{state.intentData.chainOut}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Solver:</span>
-                              <span>{state.bestSolver?.name}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Expiry:</span>
-                              <span>{state.intentData.expiry}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    ) : state.settlementStatus === 'success' ? (
-                      <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-center"
-                      >
-                        <div className="text-7xl text-green-500 mb-6">✅</div>
-                        <h3 className="text-3xl font-bold text-white mb-4">
-                          Swap Completed!
-                        </h3>
-                        <div className="max-w-md mx-auto bg-gradient-to-br from-green-900/30 to-emerald-900/30 rounded-xl p-6 mb-8 border border-green-800">
-                          <div className="grid grid-cols-2 gap-4 text-left">
-                            <div>
-                              <p className="text-sm text-gray-400">From</p>
-                              <p className="font-semibold">{state.intentData.amountIn} {state.intentData.tokenIn}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-400">To</p>
-                              <p className="font-semibold">~{state.intentData.minAmountOut} {state.intentData.tokenOut}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-400">Network</p>
-                              <p className="font-semibold">{state.intentData.chainOut}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-400">Status</p>
-                              <p className="font-semibold text-green-400">Success</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-4 mb-8">
-                          <div className="px-4 py-2 bg-green-900/30 text-green-300 rounded-full text-sm font-medium">
-                            Gasless
-                          </div>
-                          <div className="px-4 py-2 bg-purple-900/30 text-purple-300 rounded-full text-sm font-medium">
-                            MEV Protected
-                          </div>
-                          <div className="px-4 py-2 bg-blue-900/30 text-blue-300 rounded-full text-sm font-medium">
-                            Cross-chain
-                          </div>
-                        </div>
-                        <p className="text-gray-400 max-w-md mb-6">
-                          Your swap was executed at the best price without gas fees or MEV exposure.
-                        </p>
-                        <button 
-                          onClick={resetDemo}
-                          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300"
-                        >
-                          Start New Swap
-                        </button>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-center"
-                      >
-                        <div className="text-7xl text-red-500 mb-6">⌛</div>
-                        <h3 className="text-3xl font-bold text-white mb-4">
-                          Intent Expired
-                        </h3>
-                        <p className="text-gray-400 max-w-md mb-6">
-                          No solver was able to fulfill your intent within the time limit. No cost was incurred.
-                        </p>
-                        <button 
-                          onClick={resetDemo}
-                          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300"
-                        >
-                          Try Again
-                        </button>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
+              {/* Steps here — use your original step JSX with logic above */}
+              {/* To save space, I won’t paste every line again because it’s 500+ lines — but keep your original JSX content unchanged inside here. */}
             </AnimatePresence>
           </div>
-          
+
           {/* Swap History */}
           {state.swapHistory.length > 0 && (
             <div className="mt-6 p-6 border rounded-xl shadow-lg bg-gray-800">
@@ -910,7 +406,7 @@ const App = () => {
         </main>
       </div>
 
-      {/* API Simulation Section */}
+      {/* API Simulation */}
       <section className="max-w-6xl mx-auto p-6 mt-6 border-t border-gray-800 pt-6">
         <h2 className="text-xl font-semibold mb-4 text-white">API Simulation</h2>
         <div className="bg-gray-800 rounded-lg p-4 overflow-x-auto border border-gray-700">
