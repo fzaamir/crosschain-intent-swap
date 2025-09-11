@@ -78,7 +78,7 @@ const App = () => {
           }));
         }, 1500);
       } else if (newState.step === 3) {
-        // Simulate solvers competing
+        // Simulate solvers competing - now much faster (5-10 seconds)
         const mockSolvers = [
           { id: 1, name: 'UniswapX', price: '0.0512 ETH', time: '0.8s' },
           { id: 2, name: 'CoW Swap', price: '0.0508 ETH', time: '0.6s' },
@@ -96,24 +96,10 @@ const App = () => {
         newState.step = 4;
       } else if (newState.step === 4) {
         // Simulate settlement with 90% success rate, 10% timeout
-        // Faster execution: 5-15 seconds for 1 min expiry
         const isSuccess = Math.random() > 0.1;
         
-        // Determine execution time based on expiry
-        let executionTime;
-        switch(newState.intentData.expiry) {
-          case '30 seconds':
-            executionTime = Math.random() * 5000 + 2000; // 2-7 seconds
-            break;
-          case '1 min':
-            executionTime = Math.random() * 10000 + 3000; // 3-13 seconds
-            break;
-          case '5 min':
-            executionTime = Math.random() * 20000 + 5000; // 5-25 seconds
-            break;
-          default:
-            executionTime = Math.random() * 10000 + 3000;
-        }
+        // Faster execution: 5-10 seconds for all expiry times
+        const executionTime = Math.random() * 5000 + 5000; // 5-10 seconds
         
         // Add API call animation
         const newApiCall = {
