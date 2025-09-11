@@ -23,7 +23,7 @@ const App = () => {
         chainOut: 'Arbitrum',
         amountIn: '100',
         minAmountOut: '0.05',
-        expiry: '15 min'
+        expiry: '1 min'
       },
       signing: false,
       signed: false,
@@ -40,11 +40,6 @@ const App = () => {
     };
   };
 
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem('darkMode');
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
-  
   const [state, setState] = useState(loadInitialState);
   const [showAchievement, setShowAchievement] = useState(null);
 
@@ -52,16 +47,6 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('tokenSwapState', JSON.stringify(state));
   }, [state]);
-
-  // Save dark mode preference
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
 
   // Handle input changes
   const handleChange = (e) => {
@@ -91,14 +76,14 @@ const App = () => {
             signed: true,
             step: 3
           }));
-        }, 2000);
+        }, 1500);
       } else if (newState.step === 3) {
         // Simulate solvers competing
         const mockSolvers = [
-          { id: 1, name: 'UniswapX', price: '0.0512 ETH', time: '2.1s' },
-          { id: 2, name: 'CoW Swap', price: '0.0508 ETH', time: '1.8s' },
-          { id: 3, name: '1inch Fusion', price: '0.0515 ETH', time: '2.3s' },
-          { id: 4, name: 'Matcha', price: '0.0509 ETH', time: '1.9s' }
+          { id: 1, name: 'UniswapX', price: '0.0512 ETH', time: '0.8s' },
+          { id: 2, name: 'CoW Swap', price: '0.0508 ETH', time: '0.6s' },
+          { id: 3, name: '1inch Fusion', price: '0.0515 ETH', time: '0.9s' },
+          { id: 4, name: 'Matcha', price: '0.0509 ETH', time: '0.7s' }
         ];
         
         // Sort by best price (highest ETH amount)
@@ -111,7 +96,24 @@ const App = () => {
         newState.step = 4;
       } else if (newState.step === 4) {
         // Simulate settlement with 90% success rate, 10% timeout
+        // Faster execution: 5-15 seconds for 1 min expiry
         const isSuccess = Math.random() > 0.1;
+        
+        // Determine execution time based on expiry
+        let executionTime;
+        switch(newState.intentData.expiry) {
+          case '30 seconds':
+            executionTime = Math.random() * 5000 + 2000; // 2-7 seconds
+            break;
+          case '1 min':
+            executionTime = Math.random() * 10000 + 3000; // 3-13 seconds
+            break;
+          case '5 min':
+            executionTime = Math.random() * 20000 + 5000; // 5-25 seconds
+            break;
+          default:
+            executionTime = Math.random() * 10000 + 3000;
+        }
         
         // Add API call animation
         const newApiCall = {
@@ -169,7 +171,7 @@ const App = () => {
               achievements: newAchievements
             };
           });
-        }, 3000);
+        }, executionTime);
       }
       
       return newState;
@@ -193,14 +195,13 @@ const App = () => {
   // Reset all data
   const resetAllData = () => {
     localStorage.removeItem('tokenSwapState');
-    localStorage.removeItem('darkMode');
     window.location.reload();
   };
 
   // Token and chain options
   const tokenOptions = ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC'];
   const chainOptions = ['Ethereum', 'Polygon', 'BNB Chain', 'Arbitrum', 'Optimism', 'Base'];
-  const expiryOptions = ['5 min', '10 min', '15 min', '30 min', '1 hour'];
+  const expiryOptions = ['30 seconds', '1 min', '5 min'];
 
   // Progress bar width calculation
   const progressWidth = `${(state.step / 4) * 100}%`;
@@ -219,7 +220,7 @@ const App = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className="min-h-screen transition-colors duration-300 dark bg-gray-900 text-white">
       {/* Achievement Notification */}
       <AnimatePresence>
         {showAchievement && (
@@ -247,31 +248,28 @@ const App = () => {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="p-6 border-b border-gray-200 dark:border-gray-800">
+      <header className="p-6 border-b border-gray-800">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
             Token Swap with INTENTs
           </h1>
           <div className="flex items-center mt-4 md:mt-0 space-x-3">
             <button 
               onClick={resetAllData}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors duration-300"
+              className="px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors duration-300"
             >
               Reset All
             </button>
-            <button 
-              onClick={toggleDarkMode}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors duration-300 flex items-center"
-            >
-              {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
-            </button>
+            <div className="px-4 py-2 bg-gray-800 rounded-lg flex items-center">
+              <span className="mr-2">🌙</span> Dark Mode
+            </div>
           </div>
         </div>
       </header>
 
       {/* Progress Bar */}
       <div className="max-w-6xl mx-auto px-4 py-2">
-        <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
           <motion.div 
             className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
             initial={{ width: 0 }}
@@ -284,11 +282,11 @@ const App = () => {
       <div className="flex flex-col md:flex-row max-w-6xl mx-auto p-4 gap-6">
         {/* Flowchart Sidebar */}
         <aside className="w-full md:w-1/4">
-          <div className="w-full p-4 border rounded-lg shadow-md bg-white dark:bg-gray-800 mb-6">
-            <h2 className="font-semibold mb-4 text-gray-800 dark:text-gray-200">Swap Flow</h2>
+          <div className="w-full p-4 border rounded-lg shadow-md bg-gray-800 mb-6">
+            <h2 className="font-semibold mb-4 text-gray-200">Swap Flow</h2>
             <div className="relative pl-8">
               {/* Vertical line */}
-              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-300 dark:bg-gray-600"></div>
+              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-700"></div>
               
               <ul className="space-y-6">
                 {[1, 2, 3, 4].map((s) => (
@@ -299,15 +297,15 @@ const App = () => {
                         ? 'bg-green-500 border-green-500' 
                         : state.step > s 
                           ? 'bg-green-500 border-green-500' 
-                          : 'bg-white dark:bg-gray-700 border-gray-400 dark:border-gray-500'
+                          : 'bg-gray-800 border-gray-600'
                     }`}></div>
                     
                     <div className={`pl-6 ${
                       state.step === s 
-                        ? 'text-green-600 dark:text-green-400 font-semibold' 
+                        ? 'text-green-400 font-semibold' 
                         : state.step > s 
-                          ? 'text-gray-700 dark:text-gray-300' 
-                          : 'text-gray-500 dark:text-gray-400'
+                          ? 'text-gray-300' 
+                          : 'text-gray-500'
                     }`}>
                       <span className="block">
                         {s === 1 && 'Set Goal'}
@@ -316,7 +314,7 @@ const App = () => {
                         {s === 4 && 'On-chain Settlement'}
                       </span>
                       {state.step === s && (
-                        <span className="text-xs mt-1 inline-block px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+                        <span className="text-xs mt-1 inline-block px-2 py-1 bg-green-900 text-green-300 rounded">
                           Current Step
                         </span>
                       )}
@@ -328,16 +326,16 @@ const App = () => {
           </div>
           
           {/* Achievements Panel */}
-          <div className="w-full p-4 border rounded-lg shadow-md bg-white dark:bg-gray-800">
-            <h2 className="font-semibold mb-4 text-gray-800 dark:text-gray-200">Achievements</h2>
+          <div className="w-full p-4 border rounded-lg shadow-md bg-gray-800">
+            <h2 className="font-semibold mb-4 text-gray-200">Achievements</h2>
             <div className="space-y-3">
               {state.achievements.map(achievement => (
                 <div 
                   key={achievement.id} 
                   className={`p-3 rounded-lg flex items-center ${
                     achievement.unlocked 
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' 
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-700 text-white' 
+                      : 'bg-gray-700 text-gray-500'
                   }`}
                 >
                   <div className="text-xl mr-3">
@@ -357,7 +355,7 @@ const App = () => {
 
         {/* Main Content */}
         <main className="flex-1">
-          <div className="p-6 border rounded-xl shadow-lg bg-white dark:bg-gray-800">
+          <div className="p-6 border rounded-xl shadow-lg bg-gray-800">
             <AnimatePresence mode="wait">
               <motion.div
                 key={state.step}
@@ -369,18 +367,18 @@ const App = () => {
                 {/* Step 1: Set Goal */}
                 {state.step === 1 && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">1. Set Goal</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-white">1. Set Goal</h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                       <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="block mb-2 text-sm font-medium text-gray-300">
                           Token In
                         </label>
                         <select
                           name="tokenIn"
                           value={state.intentData.tokenIn}
                           onChange={handleChange}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           {tokenOptions.map(token => (
                             <option key={token} value={token}>{token}</option>
@@ -389,14 +387,14 @@ const App = () => {
                       </div>
                       
                       <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="block mb-2 text-sm font-medium text-gray-300">
                           Token Out
                         </label>
                         <select
                           name="tokenOut"
                           value={state.intentData.tokenOut}
                           onChange={handleChange}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           {tokenOptions.filter(t => t !== state.intentData.tokenIn).map(token => (
                             <option key={token} value={token}>{token}</option>
@@ -405,14 +403,14 @@ const App = () => {
                       </div>
                       
                       <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="block mb-2 text-sm font-medium text-gray-300">
                           Chain In
                         </label>
                         <select
                           name="chainIn"
                           value={state.intentData.chainIn}
                           onChange={handleChange}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           {chainOptions.map(chain => (
                             <option key={chain} value={chain}>{chain}</option>
@@ -421,14 +419,14 @@ const App = () => {
                       </div>
                       
                       <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="block mb-2 text-sm font-medium text-gray-300">
                           Chain Out
                         </label>
                         <select
                           name="chainOut"
                           value={state.intentData.chainOut}
                           onChange={handleChange}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           {chainOptions.filter(c => c !== state.intentData.chainIn).map(chain => (
                             <option key={chain} value={chain}>{chain}</option>
@@ -437,7 +435,7 @@ const App = () => {
                       </div>
                       
                       <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="block mb-2 text-sm font-medium text-gray-300">
                           Amount In
                         </label>
                         <input
@@ -445,13 +443,13 @@ const App = () => {
                           type="number"
                           value={state.intentData.amountIn}
                           onChange={handleChange}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           placeholder="100"
                         />
                       </div>
                       
                       <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="block mb-2 text-sm font-medium text-gray-300">
                           Minimum Receive
                         </label>
                         <input
@@ -460,20 +458,20 @@ const App = () => {
                           step="0.0001"
                           value={state.intentData.minAmountOut}
                           onChange={handleChange}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           placeholder="0.05"
                         />
                       </div>
                       
                       <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="block mb-2 text-sm font-medium text-gray-300">
                           Expiry Time
                         </label>
                         <select
                           name="expiry"
                           value={state.intentData.expiry}
                           onChange={handleChange}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full p-3 border border-gray-700 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           {expiryOptions.map(time => (
                             <option key={time} value={time}>{time}</option>
@@ -482,16 +480,16 @@ const App = () => {
                       </div>
                       
                       <div className="flex items-end">
-                        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg w-full">
-                          <div className="text-sm text-indigo-700 dark:text-indigo-300 mb-1">Price Impact</div>
+                        <div className="bg-indigo-900/30 p-3 rounded-lg w-full">
+                          <div className="text-sm text-indigo-300 mb-1">Price Impact</div>
                           <div className="flex items-center">
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
+                            <div className="w-full bg-gray-700 rounded-full h-2 mr-2">
                               <div 
                                 className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full" 
                                 style={{ width: `${calculatePriceImpact()}%` }}
                               ></div>
                             </div>
-                            <div className="text-sm font-medium text-green-600 dark:text-green-400">
+                            <div className="text-sm font-medium text-green-400">
                               {calculatePriceImpact().toFixed(2)}%
                             </div>
                           </div>
@@ -502,12 +500,12 @@ const App = () => {
                     <div className="flex flex-wrap gap-4">
                       <button
                         onClick={handleNext}
-                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
                       >
                         Next: Sign Intent
                       </button>
                       
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center text-sm text-gray-400">
                         <span className="mr-1">ⓘ</span>
                         <span>Gasless • MEV Protected • Cross-chain</span>
                       </div>
@@ -518,7 +516,7 @@ const App = () => {
                 {/* Step 2: Sign Intent */}
                 {state.step === 2 && (
                   <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">2. Sign Intent</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-white">2. Sign Intent</h2>
                     
                     {!state.signed ? (
                       <div className="flex flex-col items-center">
@@ -529,8 +527,8 @@ const App = () => {
                           disabled={state.signing}
                           className={`px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-300 flex items-center ${
                             state.signing 
-                              ? 'bg-yellow-500 cursor-not-allowed' 
-                              : 'bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600'
+                              ? 'bg-yellow-600 cursor-not-allowed' 
+                              : 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700'
                           }`}
                         >
                           {state.signing ? (
@@ -555,24 +553,24 @@ const App = () => {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.5 }}
-                          className="mt-6 text-gray-600 dark:text-gray-400 max-w-md text-center"
+                          className="mt-6 text-gray-400 max-w-md text-center"
                         >
                           By signing, you're creating a permissionless intent that solvers can fulfill without requiring gas fees or exposing your trade to MEV.
                         </motion.p>
                         
                         {/* Gas Savings Visualization */}
-                        <div className="mt-8 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl w-full max-w-md">
+                        <div className="mt-8 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-xl w-full max-w-md">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-green-700 dark:text-green-300 font-medium">Gas Savings</span>
-                            <span className="text-green-600 dark:text-green-400 font-bold">${calculateGasSavings().toFixed(2)}</span>
+                            <span className="text-green-300 font-medium">Gas Savings</span>
+                            <span className="text-green-400 font-bold">${calculateGasSavings().toFixed(2)}</span>
                           </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                          <div className="w-full bg-gray-700 rounded-full h-2.5">
                             <div 
                               className="bg-gradient-to-r from-green-400 to-emerald-500 h-2.5 rounded-full" 
                               style={{ width: '100%' }}
                             ></div>
                           </div>
-                          <div className="text-xs text-green-600 dark:text-green-400 mt-2">
+                          <div className="text-xs text-green-400 mt-2">
                             100% gasless transaction
                           </div>
                         </div>
@@ -584,8 +582,8 @@ const App = () => {
                         className="text-center"
                       >
                         <div className="text-6xl text-green-500 mb-4">✅</div>
-                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Intent Signed Successfully!</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-6">
+                        <h3 className="text-2xl font-bold text-white mb-2">Intent Signed Successfully!</h3>
+                        <p className="text-gray-400 mb-6">
                           Your swap intent has been created and is now available for solvers to fulfill.
                         </p>
                         <motion.button
@@ -604,28 +602,28 @@ const App = () => {
                 {/* Step 3: Solvers Compete */}
                 {state.step === 3 && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">3. Solvers Compete</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-white">3. Solvers Compete</h2>
                     
                     {state.solvers.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
-                        <p className="text-gray-600 dark:text-gray-400">Solvers are competing for your intent...</p>
+                        <p className="text-gray-400">Solvers are competing for your intent...</p>
                         
                         {/* Chain Connection Visualization */}
                         <div className="mt-8 w-full max-w-md">
                           <div className="flex items-center justify-between">
-                            <div className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                            <div className="px-4 py-2 bg-indigo-900/30 rounded-lg">
                               {state.intentData.chainIn}
                             </div>
                             <div className="flex-1 mx-4 relative">
-                              <div className="h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full"></div>
+                              <div className="h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"></div>
                               <motion.div 
                                 className="absolute top-0 left-0 w-4 h-4 bg-indigo-500 rounded-full"
                                 animate={{ x: [0, 200] }}
                                 transition={{ repeat: Infinity, duration: 1.5 }}
                               />
                             </div>
-                            <div className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                            <div className="px-4 py-2 bg-purple-900/30 rounded-lg">
                               {state.intentData.chainOut}
                             </div>
                           </div>
@@ -646,22 +644,22 @@ const App = () => {
                               transition={{ delay: index * 0.1 }}
                               className={`border rounded-xl p-5 shadow-md transition-all duration-300 ${
                                 solver.id === state.bestSolver.id
-                                  ? 'border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 scale-105'
-                                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                                  ? 'border-2 border-green-500 bg-gradient-to-br from-green-900/20 to-emerald-900/20 scale-105'
+                                  : 'border-gray-700 bg-gray-800'
                               }`}
                             >
                               <div className="flex justify-between items-start mb-3">
-                                <h3 className="font-bold text-lg text-gray-800 dark:text-white">{solver.name}</h3>
+                                <h3 className="font-bold text-lg text-white">{solver.name}</h3>
                                 {solver.id === state.bestSolver.id && (
-                                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-semibold rounded">
+                                  <span className="px-2 py-1 bg-green-900 text-green-300 text-xs font-semibold rounded">
                                     BEST
                                   </span>
                                 )}
                               </div>
-                              <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                              <div className="text-2xl font-bold text-white mb-1">
                                 {solver.price}
                               </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                              <div className="text-sm text-gray-400">
                                 Fulfilled in {solver.time}
                               </div>
                               
@@ -671,7 +669,7 @@ const App = () => {
                                 <div className="text-yellow-400 mr-1">★</div>
                                 <div className="text-yellow-400 mr-1">★</div>
                                 <div className="text-yellow-400 mr-1">★</div>
-                                <div className={`${solver.id === 1 ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}>★</div>
+                                <div className={`${solver.id === 1 ? 'text-yellow-400' : 'text-gray-600'}`}>★</div>
                               </div>
                             </motion.div>
                           ))}
@@ -681,13 +679,13 @@ const App = () => {
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-8 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-800 rounded-lg"
+                            className="mb-8 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-800 rounded-lg"
                           >
                             <div className="flex items-center">
                               <div className="text-2xl text-green-500 mr-3">🎉</div>
                               <div>
-                                <h3 className="font-bold text-green-700 dark:text-green-300">Best Price Found!</h3>
-                                <p className="text-green-600 dark:text-green-400">
+                                <h3 className="font-bold text-green-300">Best Price Found!</h3>
+                                <p className="text-green-400">
                                   {state.bestSolver.name} offers the best price: {state.bestSolver.price}
                                 </p>
                               </div>
@@ -695,17 +693,17 @@ const App = () => {
                             
                             {/* Price Comparison */}
                             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                              <div className="p-2 bg-white dark:bg-gray-700 rounded">
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Market Price</div>
+                              <div className="p-2 bg-gray-700 rounded">
+                                <div className="text-xs text-gray-400">Market Price</div>
                                 <div className="font-bold">0.0515 ETH</div>
                               </div>
-                              <div className="p-2 bg-white dark:bg-gray-700 rounded">
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Your Price</div>
-                                <div className="font-bold text-green-600 dark:text-green-400">{state.bestSolver.price}</div>
+                              <div className="p-2 bg-gray-700 rounded">
+                                <div className="text-xs text-gray-400">Your Price</div>
+                                <div className="font-bold text-green-400">{state.bestSolver.price}</div>
                               </div>
-                              <div className="p-2 bg-white dark:bg-gray-700 rounded">
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Savings</div>
-                                <div className="font-bold text-green-600 dark:text-green-400">0.0003 ETH</div>
+                              <div className="p-2 bg-gray-700 rounded">
+                                <div className="text-xs text-gray-400">Savings</div>
+                                <div className="font-bold text-green-400">0.0003 ETH</div>
                               </div>
                             </div>
                           </motion.div>
@@ -721,7 +719,7 @@ const App = () => {
                             Settle Swap
                           </motion.button>
                           
-                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center text-sm text-gray-400">
                             <span className="mr-1">ⓘ</span>
                             <span>Multiple solvers compete to give you the best price</span>
                           </div>
@@ -734,15 +732,15 @@ const App = () => {
                 {/* Step 4: On-chain Settlement */}
                 {state.step === 4 && (
                   <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">4. On-chain Settlement</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-white">4. On-chain Settlement</h2>
                     
                     {state.settlementStatus === 'pending' ? (
                       <>
                         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500 mx-auto mb-6"></div>
-                        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-300 mb-2">
                           Settling Swap...
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-400">
+                        <p className="text-gray-400">
                           Your intent is being fulfilled on-chain
                         </p>
                         
@@ -753,7 +751,7 @@ const App = () => {
                               {state.apiCalls.map((call) => (
                                 <motion.div
                                   key={call.id}
-                                  className="absolute top-1/2 left-0 transform -translate-y-1/2 w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg"
+                                  className="absolute top-1/2 left-0 transform -translate-y-1/2 w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg"
                                   initial={{ x: -50, opacity: 0 }}
                                   animate={{ 
                                     x: [0, 100, 200, 300, 400, 500],
@@ -778,27 +776,27 @@ const App = () => {
                         </div>
                         
                         {/* Transaction Details */}
-                        <div className="mt-8 bg-gray-100 dark:bg-gray-800 rounded-xl p-4 max-w-md mx-auto text-left">
-                          <div className="font-semibold mb-2 text-gray-700 dark:text-gray-300">Transaction Details</div>
+                        <div className="mt-8 bg-gray-800 rounded-xl p-4 max-w-md mx-auto text-left border border-gray-700">
+                          <div className="font-semibold mb-2 text-gray-300">Transaction Details</div>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">From:</span>
+                              <span className="text-gray-400">From:</span>
                               <span>{state.intentData.amountIn} {state.intentData.tokenIn}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">To:</span>
+                              <span className="text-gray-400">To:</span>
                               <span>{state.intentData.minAmountOut} {state.intentData.tokenOut}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">Network:</span>
+                              <span className="text-gray-400">Network:</span>
                               <span>{state.intentData.chainOut}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">Solver:</span>
+                              <span className="text-gray-400">Solver:</span>
                               <span>{state.bestSolver?.name}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">Expiry:</span>
+                              <span className="text-gray-400">Expiry:</span>
                               <span>{state.intentData.expiry}</span>
                             </div>
                           </div>
@@ -811,41 +809,41 @@ const App = () => {
                         className="text-center"
                       >
                         <div className="text-7xl text-green-500 mb-6">✅</div>
-                        <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">
+                        <h3 className="text-3xl font-bold text-white mb-4">
                           Swap Completed!
                         </h3>
-                        <div className="max-w-md mx-auto bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 mb-8 border border-green-200 dark:border-green-800">
+                        <div className="max-w-md mx-auto bg-gradient-to-br from-green-900/30 to-emerald-900/30 rounded-xl p-6 mb-8 border border-green-800">
                           <div className="grid grid-cols-2 gap-4 text-left">
                             <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">From</p>
+                              <p className="text-sm text-gray-400">From</p>
                               <p className="font-semibold">{state.intentData.amountIn} {state.intentData.tokenIn}</p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">To</p>
+                              <p className="text-sm text-gray-400">To</p>
                               <p className="font-semibold">~{state.intentData.minAmountOut} {state.intentData.tokenOut}</p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">Network</p>
+                              <p className="text-sm text-gray-400">Network</p>
                               <p className="font-semibold">{state.intentData.chainOut}</p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
-                              <p className="font-semibold text-green-600 dark:text-green-400">Success</p>
+                              <p className="text-sm text-gray-400">Status</p>
+                              <p className="font-semibold text-green-400">Success</p>
                             </div>
                           </div>
                         </div>
                         <div className="flex flex-wrap justify-center gap-4 mb-8">
-                          <div className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full text-sm font-medium">
+                          <div className="px-4 py-2 bg-green-900/30 text-green-300 rounded-full text-sm font-medium">
                             Gasless
                           </div>
-                          <div className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded-full text-sm font-medium">
+                          <div className="px-4 py-2 bg-purple-900/30 text-purple-300 rounded-full text-sm font-medium">
                             MEV Protected
                           </div>
-                          <div className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
+                          <div className="px-4 py-2 bg-blue-900/30 text-blue-300 rounded-full text-sm font-medium">
                             Cross-chain
                           </div>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-400 max-w-md mb-6">
+                        <p className="text-gray-400 max-w-md mb-6">
                           Your swap was executed at the best price without gas fees or MEV exposure.
                         </p>
                         <button 
@@ -862,10 +860,10 @@ const App = () => {
                         className="text-center"
                       >
                         <div className="text-7xl text-red-500 mb-6">⌛</div>
-                        <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">
+                        <h3 className="text-3xl font-bold text-white mb-4">
                           Intent Expired
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-400 max-w-md mb-6">
+                        <p className="text-gray-400 max-w-md mb-6">
                           No solver was able to fulfill your intent within the time limit. No cost was incurred.
                         </p>
                         <button 
@@ -884,8 +882,8 @@ const App = () => {
           
           {/* Swap History */}
           {state.swapHistory.length > 0 && (
-            <div className="mt-6 p-6 border rounded-xl shadow-lg bg-white dark:bg-gray-800">
-              <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Recent Swaps</h3>
+            <div className="mt-6 p-6 border rounded-xl shadow-lg bg-gray-800">
+              <h3 className="text-xl font-semibold mb-4 text-white">Recent Swaps</h3>
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {state.swapHistory.map((swap, index) => (
                   <motion.div
@@ -893,20 +891,20 @@ const App = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex justify-between items-center"
+                    className="p-3 bg-gray-700 rounded-lg flex justify-between items-center"
                   >
                     <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold mr-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-bold mr-3">
                         {swap.tokenIn.substring(0, 2)}
                       </div>
                       <div>
                         <div className="font-medium">{swap.amountIn} {swap.tokenIn} → {swap.minAmountOut} {swap.tokenOut}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-xs text-gray-400">
                           {new Date(swap.timestamp).toLocaleString()}
                         </div>
                       </div>
                     </div>
-                    <div className="text-green-600 dark:text-green-400 font-semibold">
+                    <div className="text-green-400 font-semibold">
                       ${swap.amountIn}
                     </div>
                   </motion.div>
@@ -918,10 +916,10 @@ const App = () => {
       </div>
 
       {/* API Simulation Section */}
-      <section className="max-w-6xl mx-auto p-6 mt-6 border-t border-gray-200 dark:border-gray-800 pt-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">API Simulation</h2>
-        <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto">
-          <pre className="text-sm text-gray-800 dark:text-gray-200">
+      <section className="max-w-6xl mx-auto p-6 mt-6 border-t border-gray-800 pt-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">API Simulation</h2>
+        <div className="bg-gray-800 rounded-lg p-4 overflow-x-auto border border-gray-700">
+          <pre className="text-sm text-gray-300">
 {`POST /v1/intents
 {
   "tokenIn": "${state.intentData.tokenIn}",
