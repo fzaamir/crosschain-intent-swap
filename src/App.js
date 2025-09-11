@@ -126,6 +126,73 @@ const App = () => {
     }
   }, [state.step, state.solvers.length, state.intentData.expiry]);
 
+  // Auto-start settlement when entering Step 4
+  useEffect(() => {
+    if (state.step === 4 && state.settlementStatus === 'pending' && state.bestSolver) {
+      const isSuccess = Math.random() > 0.1;
+      const settlementTime = getSettlementTime(state.intentData.expiry);
+
+      const newApiCall = {
+        id: Date.now(),
+        from: `${state.intentData.amountIn} ${state.intentData.tokenIn} on ${state.intentData.chainIn}`,
+        to: `${state.intentData.minAmountOut} ${state.intentData.tokenOut} on ${state.intentData.chainOut}`,
+        solver: state.bestSolver.name,
+        status: 'pending'
+      };
+
+      // enqueue the API call bubble
+      setState(prev => ({
+        ...prev,
+        apiCalls: [...prev.apiCalls, newApiCall],
+      }));
+
+      const t = setTimeout(() => {
+        setState(prev => {
+          const updatedApiCalls = prev.apiCalls.map(call =>
+            call.id === newApiCall.id
+              ? { ...call, status: isSuccess ? 'success' : 'timeout' }
+              : call
+          );
+
+          let newHistory = prev.swapHistory;
+          const newAchievements = [...prev.achievements];
+
+          if (isSuccess) {
+            const newSwap = {
+              ...prev.intentData,
+              timestamp: new Date().toISOString(),
+              id: Date.now(),
+            };
+            newHistory = [newSwap, ...prev.swapHistory.slice(0, 9)];
+
+            if (!newAchievements[0].unlocked) {
+              newAchievements[0] = { ...newAchievements[0], unlocked: true };
+              setShowAchievement(newAchievements[0]);
+            }
+            if (prev.intentData.chainIn !== prev.intentData.chainOut && !newAchievements[1].unlocked) {
+              newAchievements[1] = { ...newAchievements[1], unlocked: true };
+              setShowAchievement(newAchievements[1]);
+            }
+            if (newHistory.length >= 5 && !newAchievements[2].unlocked) {
+              newAchievements[2] = { ...newAchievements[2], unlocked: true };
+              setShowAchievement(newAchievements[2]);
+            }
+          }
+
+          return {
+            ...prev,
+            settlementStatus: isSuccess ? 'success' : 'timeout',
+            apiCalls: updatedApiCalls,
+            swapHistory: newHistory,
+            achievements: newAchievements,
+          };
+        });
+      }, settlementTime);
+
+      return () => clearTimeout(t);
+    }
+  }, [state.step, state.settlementStatus, state.bestSolver, state.intentData]);
+
   // Handle next step (simplified)
   const handleNext = useCallback(() => {
     if (state.step === 1) {
@@ -148,75 +215,14 @@ const App = () => {
           step: 3
         }));
       }, 1500);
-    } else if (state.step === 4) {
-      // Simulate settlement with 90% success rate, 10% timeout
-      const isSuccess = Math.random() > 0.1;
-      
-      // Settlement time based on expiry
-      const settlementTime = getSettlementTime(state.intentData.expiry);
-      
-      // Add API call animation
-      const newApiCall = {
-        id: Date.now(),
-        from: `${state.intentData.amountIn} ${state.intentData.tokenIn} on ${state.intentData.chainIn}`,
-        to: `${state.intentData.minAmountOut} ${state.intentData.tokenOut} on ${state.intentData.chainOut}`,
-        solver: state.bestSolver.name,
-        status: 'pending'
-      };
-      
+    } else if (state.step === 3) {
+      // Manual advance to step 4 when button is clicked
       setState(prev => ({
         ...prev,
-        apiCalls: [...prev.apiCalls, newApiCall]
+        step: 4
       }));
-      
-      setTimeout(() => {
-        setState(prev => {
-          const updatedApiCalls = prev.apiCalls.map(call => 
-            call.id === newApiCall.id 
-              ? { ...call, status: isSuccess ? 'success' : 'timeout' }
-              : call
-          );
-          
-          // Add to history if successful
-          let newHistory = prev.swapHistory;
-          let newAchievements = [...prev.achievements];
-          
-          if (isSuccess) {
-            const newSwap = {
-              ...prev.intentData,
-              timestamp: new Date().toISOString(),
-              id: Date.now()
-            };
-            newHistory = [newSwap, ...prev.swapHistory.slice(0, 9)]; // Keep last 10
-            
-            // Check for achievements
-            if (!newAchievements[0].unlocked) {
-              newAchievements[0].unlocked = true;
-              setShowAchievement(newAchievements[0]);
-            }
-            
-            if (prev.intentData.chainIn !== prev.intentData.chainOut && !newAchievements[1].unlocked) {
-              newAchievements[1].unlocked = true;
-              setShowAchievement(newAchievements[1]);
-            }
-            
-            if (newHistory.length >= 5 && !newAchievements[2].unlocked) {
-              newAchievements[2].unlocked = true;
-              setShowAchievement(newAchievements[2]);
-            }
-          }
-          
-          return {
-            ...prev,
-            settlementStatus: isSuccess ? 'success' : 'timeout',
-            apiCalls: updatedApiCalls,
-            swapHistory: newHistory,
-            achievements: newAchievements
-          };
-        });
-      }, settlementTime);
     }
-  }, [state.step, state.intentData, state.bestSolver, state.swapHistory]);
+  }, [state.step]);
 
   // Reset the demo
   const resetDemo = () => {
