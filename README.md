@@ -1,31 +1,51 @@
-# Create React App
+# Token Swap with INTENTs Demo
 
-This directory is a brief example of a [Create React App](https://github.com/facebook/create-react-app) site that can be deployed to Vercel with zero configuration.
+A React application demonstrating how token swaps work with INTENTs protocol. This demo simulates the entire process from setting swap goals to on-chain settlement.
 
-## Deploy Your Own
+## Features
 
-Deploy your own Create React App project with Vercel.
+- 4-step swap process visualization
+- Interactive form for setting swap parameters
+- Simulated wallet signing
+- Solver competition visualization
+- On-chain settlement simulation
+- Dark/light mode toggle
+- Responsive design for all devices
+- API simulation preview
+- Animated transitions with Framer Motion
+- State management with Zustand
+- Routing with React Router
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/framework-boilerplates/create-react-app&template=create-react-app)
+## Getting Started
 
-_Live Example: https://create-react-template.vercel.app/_
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start the development server: `npm start`
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Available Scripts
+## Technologies Used
 
-In the project directory, you can run:
+- React 18
+- Tailwind CSS
+- Framer Motion
+- React Router
+- Zustand (state management)
+- React Tooltip
+- React Copy to Clipboard
 
-### `npm start`
+## Improvements Implemented
 
-Runs the app in the development mode. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. **State Management**: Using Zustand for global state
+2. **Routing**: React Router for step navigation
+3. **Enhanced Animations**: Staggered animations and micro-interactions
+4. **Responsive Design**: Mobile-first approach with Tailwind
+5. **Accessibility**: Proper ARIA attributes and keyboard navigation
+6. **API Simulation**: Dynamic JSON preview
+7. **Progress Indicator**: Visual progress bar
+8. **Tooltips**: For explaining benefits
+9. **Code Organization**: Component-based architecture
+10. **Dark Mode**: System-aware dark/light theme
 
-The page will reload when you make changes. You may also see any lint errors in the console.
+## Learn More
 
-### `npm test`
-
-Launches the test runner in the interactive watch mode. See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.
-
-It correctly bundles React in production mode and optimizes the build for the best performance. The build is minified and the filenames include the hashes.
+This project demonstrates the concept of INTENTs in decentralized finance, where users can create permissionless swap intents that solvers compete to fulfill without requiring gas fees or exposing trades to MEV.
