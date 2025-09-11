@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useSwapStore } from '../store/useSwapStore';
 import { fadeIn } from '../utils/animations';
-import { Tooltip } from 'react-tooltip';
 
 const SetGoal = () => {
   const intentData = useSwapStore(state => state.intentData);
@@ -12,6 +11,11 @@ const SetGoal = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     updateIntent({ [name]: value });
+  };
+
+  const handleNext = () => {
+    // Update the step in the store
+    setStep(2);
   };
 
   const tokenOptions = ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC'];
@@ -108,12 +112,6 @@ const SetGoal = () => {
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             Minimum Receive
-            <span 
-              className="ml-1 text-indigo-600 dark:text-indigo-400 cursor-help"
-              data-tip="The minimum amount you're willing to receive"
-            >
-              ⓘ
-            </span>
           </label>
           <input
             name="minAmountOut"
@@ -127,26 +125,12 @@ const SetGoal = () => {
         </div>
       </div>
       
-      <div className="flex flex-wrap gap-4">
-        <button
-          onClick={() => setStep(2)}
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-        >
-          Next: Sign Intent
-        </button>
-        
-        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-          <span 
-            className="mr-1 text-indigo-600 dark:text-indigo-400 cursor-help"
-            data-tip="Benefits of using INTENTs"
-          >
-            ⓘ
-          </span>
-          <span>Gasless • MEV Protected • Cross-chain</span>
-        </div>
-      </div>
-      
-      <Tooltip place="top" className="tooltip" />
+      <button
+        onClick={handleNext}
+        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+      >
+        Next: Sign Intent
+      </button>
     </motion.div>
   );
 };
