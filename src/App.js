@@ -1,19 +1,13 @@
-// App.js — Professional 2025 UI Redesign
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import './App.css'; // Import custom CSS for advanced animations
 
 const App = () => {
   // Load initial state from localStorage or use defaults
   const loadInitialState = () => {
     try {
       const savedState = localStorage.getItem('tokenSwapState');
-      if (savedState) {
-        return JSON.parse(savedState);
-      }
-    } catch (e) {
-      console.error('Failed to load saved state:', e);
-    }
+      if (savedState) return JSON.parse(savedState);
+    } catch (e) { console.error('Failed to load saved state:', e); }
     return {
       step: 1,
       intentData: {
@@ -37,30 +31,19 @@ const App = () => {
         { id: 2, name: 'Cross-chain Explorer', description: 'Swap between different chains', unlocked: false },
         { id: 3, name: 'MEV Protector', description: 'Complete 5 gasless swaps', unlocked: false }
       ],
-      darkMode: true,
-      logoUrl: 'https://via.placeholder.com/40x40/6366f1/ffffff?text=INT', // Default placeholder
-      showParticles: true // Enable background particles
+      darkMode: true, // Hardcoded — no toggle
+      showParticles: true
     };
   };
 
   const [state, setState] = useState(loadInitialState);
   const [showAchievement, setShowAchievement] = useState(null);
   const [achievementsCollapsed, setAchievementsCollapsed] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('tokenSwapState', JSON.stringify(state));
   }, [state]);
-
-  // Track mouse movement for subtle particle parallax
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -220,16 +203,6 @@ const App = () => {
     window.location.reload();
   };
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setState(prev => ({ ...prev, darkMode: !prev.darkMode }));
-  };
-
-  // Update logo URL
-  const updateLogoUrl = (url) => {
-    setState(prev => ({ ...prev, logoUrl: url || 'https://via.placeholder.com/40x40/6366f1/ffffff?text=INT' }));
-  };
-
   // Token and chain options
   const tokenOptions = ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC'];
   const chainOptions = ['Ethereum', 'Polygon', 'BNB Chain', 'Arbitrum', 'Optimism', 'Base'];
@@ -239,47 +212,77 @@ const App = () => {
   const progressWidth = useMemo(() => `${Math.min((state.step / 4) * 100, 100)}%`, [state.step]);
 
   // Calculate gas savings
-  const calculateGasSavings = () => 50; // USD
+  const calculateGasSavings = () => 50;
 
   // Calculate price impact (memoized)
   const calculatePriceImpact = useMemo(() => Math.random() * 2, [state.step]);
 
-  // Particle component for background
-  const Particles = () => (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {state.showParticles && Array.from({ length: 30 }).map((_, i) => (
+  // Liquid Gradient Background Component
+  const LiquidBackground = () => (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {/* Main Animated Gradient */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-black"
+        animate={{
+          backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        style={{
+          backgroundSize: '300% 300%',
+        }}
+      />
+
+      {/* Floating Particle Flow (subtle, non-distracting) */}
+      {Array.from({ length: 40 }).map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-1 h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full"
+          className="absolute w-1 h-1 bg-gradient-to-r from-cyan-400/30 to-indigo-500/30 rounded-full pointer-events-none"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
-            opacity: 0.1 + Math.random() * 0.3,
-            animationDelay: `${Math.random() * 5}s`,
-            animationDuration: `${8 + Math.random() * 12}s`
+            opacity: 0.05 + Math.random() * 0.1,
           }}
           animate={{
-            y: [0, -50, 0],
-            x: [0, 20, -20, 0],
-            scale: [1, 1.2, 1]
+            y: [-10, 20, -10],
+            x: [0, 15, -15, 0],
+            scale: [1, 1.2, 1],
           }}
           transition={{
+            duration: 6 + Math.random() * 8,
             repeat: Infinity,
-            duration: 8 + Math.random() * 12,
-            ease: "easeInOut"
+            ease: "easeInOut",
+            delay: Math.random() * 5,
           }}
         />
       ))}
+
+      {/* Wave Overlay (slow-moving ripple effect) */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-t from-transparent via-white/5 to-transparent"
+        animate={{
+          backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        style={{
+          backgroundSize: '400% 400%',
+        }}
+      />
     </div>
   );
 
   return (
-    <div className={`min-h-screen relative overflow-x-hidden transition-colors duration-500 ${
-      state.darkMode ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
+    <div className="min-h-screen relative bg-gray-950 text-white overflow-x-hidden">
 
-      {/* Animated Background Particles */}
-      <Particles />
+      {/* LIVING LIQUID BACKGROUND — NO BUBBLES, NO STATIC GRADIENTS */}
+      <LiquidBackground />
 
       {/* Achievement Notification */}
       <AnimatePresence>
@@ -288,7 +291,7 @@ const App = () => {
             initial={{ y: -100, opacity: 0, scale: 0.8 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -100, opacity: 0, scale: 0.8 }}
-            className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 w-96 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white p-5 rounded-2xl shadow-2xl backdrop-blur-lg border border-white/10"
+            className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 w-96 bg-gradient-to-r from-emerald-600 via-cyan-600 to-indigo-600 text-white p-5 rounded-2xl shadow-2xl backdrop-blur-lg border border-white/10"
             style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
           >
             <div className="flex items-center justify-between">
@@ -311,77 +314,39 @@ const App = () => {
         )}
       </AnimatePresence>
 
-      {/* Header with Logo & Controls */}
+      {/* Header — Clean, Minimal, No Logo, No Light Mode */}
       <header className="relative z-10 p-6 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <img 
-              src={state.logoUrl} 
-              alt="Logo" 
-              className="w-10 h-10 rounded-full border border-white/10 shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 object-cover"
-              onError={(e) => e.target.src = 'https://via.placeholder.com/40x40/6366f1/ffffff?text=INT'}
-            />
-            <motion.h1 
-              className="text-2xl md:text-3xl font-black bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent leading-tight tracking-tight"
-              animate={{ 
-                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] 
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              style={{ 
-                backgroundSize: '300% 300%', 
-                WebkitBackgroundClip: 'text',
-                fontFamily: 'Inter, system-ui, sans-serif'
-              }}
-            >
-              INTENT Swap
-            </motion.h1>
-          </div>
+          {/* Title Only — No Logo, No Toggle */}
+          <motion.h1 
+            className="text-2xl md:text-3xl font-black bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 bg-clip-text text-transparent leading-tight tracking-tight"
+            animate={{ 
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] 
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            style={{ 
+              backgroundSize: '300% 300%', 
+              WebkitBackgroundClip: 'text',
+              fontFamily: 'Inter, system-ui, sans-serif'
+            }}
+          >
+            INTENT Swap
+          </motion.h1>
 
-          <div className="flex items-center space-x-3">
-            <input
-              type="text"
-              placeholder="Enter logo URL..."
-              value={state.logoUrl}
-              onChange={(e) => updateLogoUrl(e.target.value)}
-              className="px-4 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-              style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
-            />
-            <button 
-              onClick={resetAllData}
-              className="px-4 py-2 text-sm bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-white/10 transition-all duration-300 text-gray-300 hover:text-white"
-            >
-              Reset All
-            </button>
-            <button 
-              onClick={toggleDarkMode}
-              className="px-4 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-white/10 transition-all duration-300 text-gray-300 hover:text-white flex items-center space-x-1"
-            >
-              {state.darkMode ? (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                  <span>Light</span>
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                  <span>Dark</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button 
+            onClick={resetAllData}
+            className="px-4 py-2 text-sm bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-white/10 transition-all duration-300 text-gray-300 hover:text-white"
+          >
+            Reset All
+          </button>
         </div>
       </header>
 
-      {/* Progress Bar with Gradient Glow */}
+      {/* Progress Bar — Now contained, no overflow */}
       <div className="max-w-7xl mx-auto px-6 pb-4">
         <div className="relative h-1.5 bg-white/5 rounded-full overflow-hidden">
           <motion.div 
-            className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full shadow-lg"
+            className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 rounded-full shadow-lg"
             style={{ width: progressWidth }}
             initial={{ width: 0 }}
             animate={{ width: progressWidth }}
@@ -400,22 +365,22 @@ const App = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="text-xl font-bold mb-6 bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">Swap Flow</h2>
+            <h2 className="text-xl font-bold mb-6 bg-gradient-to-r from-cyan-300 to-indigo-300 bg-clip-text text-transparent">Swap Flow</h2>
             <div className="relative pl-6">
-              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500/30 to-purple-500/30"></div>
+              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-cyan-500/30 to-indigo-500/30"></div>
               <ul className="space-y-5">
                 {[1, 2, 3, 4].map((s) => (
                   <li key={s} className="relative">
                     <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border-2 transition-all duration-500 ${
                       state.step === s 
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 border-indigo-500 shadow-lg shadow-indigo-500/30 scale-110' 
+                        ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 border-cyan-500 shadow-lg shadow-cyan-500/30 scale-110' 
                         : state.step > s 
                           ? 'bg-green-500 border-green-500 shadow-lg shadow-green-500/30' 
                           : 'bg-white/10 border-white/20'
                     }`}></div>
                     <div className={`pl-8 pr-4 py-3 rounded-xl transition-all duration-500 ${
                       state.step === s 
-                        ? 'bg-gradient-to-r from-indigo-900/40 to-purple-900/40 text-indigo-200 shadow-lg shadow-indigo-500/20 border border-indigo-500/30' 
+                        ? 'bg-gradient-to-r from-cyan-900/40 to-indigo-900/40 text-cyan-200 shadow-lg shadow-cyan-500/20 border border-cyan-500/30' 
                         : state.step > s 
                           ? 'bg-green-900/20 text-green-300 border border-green-500/20' 
                           : 'bg-white/5 text-gray-400 border border-white/10'
@@ -430,7 +395,7 @@ const App = () => {
                         <motion.span
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="inline-block mt-2 px-3 py-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-xs rounded-full border border-indigo-500/30 text-indigo-300"
+                          className="inline-block mt-2 px-3 py-1 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 text-xs rounded-full border border-cyan-500/30 text-cyan-300"
                         >
                           Active
                         </motion.span>
@@ -461,7 +426,7 @@ const App = () => {
                     transition={{ delay: achievement.id * 0.1 }}
                     className={`p-4 rounded-xl flex items-center transition-all duration-500 ${
                       achievement.unlocked 
-                        ? 'bg-gradient-to-r from-emerald-900/40 to-teal-800/40 text-emerald-300 border border-emerald-500/30 shadow-lg shadow-emerald-500/10' 
+                        ? 'bg-gradient-to-r from-emerald-900/40 to-cyan-800/40 text-emerald-300 border border-emerald-500/30 shadow-lg shadow-emerald-500/10' 
                         : 'bg-white/5 text-gray-500 border border-white/10'
                     }`}
                   >
@@ -503,7 +468,7 @@ const App = () => {
                 {state.step === 1 && (
                   <div>
                     <motion.h2 
-                      className="text-4xl font-black mb-8 bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+                      className="text-4xl font-black mb-8 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 bg-clip-text text-transparent"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
@@ -521,39 +486,30 @@ const App = () => {
                         { label: 'Expiry Time', name: 'expiry', options: expiryOptions }
                       ].map(({ label, name, options, type, step }) => (
                         <div key={name} className="group">
-                          <label className="block text-sm font-medium text-gray-300 mb-3 group-hover:text-indigo-300 transition-colors">
+                          <label className="block text-sm font-medium text-gray-300 mb-3 group-hover:text-cyan-300 transition-colors">
                             {label}
                           </label>
-                          {options ? (
-                            <select
-                              name={name}
-                              value={state.intentData[name]}
-                              onChange={handleChange}
-                              className="w-full p-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-300"
-                            >
-                              {options.map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              name={name}
-                              type={type || 'text'}
-                              step={step}
-                              value={state.intentData[name]}
-                              onChange={handleChange}
-                              className="w-full p-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-300"
-                              placeholder={label === 'Amount In' ? '100' : '0.05'}
-                            />
-                          )}
+                          <select
+                            name={name}
+                            value={state.intentData[name]}
+                            onChange={handleChange}
+                            className="w-full p-4 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-md border border-cyan-500/40 rounded-xl text-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all duration-300 shadow-lg"
+                            style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                          >
+                            {options.map(opt => (
+                              <option key={opt} value={opt} className="bg-gray-800 text-white">
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       ))}
                     </div>
 
                     {/* Price Impact Card */}
-                    <div className="mb-8 p-6 bg-gradient-to-r from-indigo-900/30 to-purple-900/30 rounded-2xl border border-indigo-500/20">
+                    <div className="mb-8 p-6 bg-gradient-to-r from-cyan-900/30 to-indigo-900/30 rounded-2xl border border-cyan-500/20">
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-medium text-indigo-300">Price Impact</span>
+                        <span className="text-sm font-medium text-cyan-300">Price Impact</span>
                         <span className="text-sm font-bold text-green-400">{calculatePriceImpact.toFixed(2)}%</span>
                       </div>
                       <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
@@ -571,7 +527,7 @@ const App = () => {
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleNext}
-                      className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold text-lg rounded-2xl shadow-xl shadow-indigo-500/20 transition-all duration-300 flex items-center justify-center space-x-3"
+                      className="w-full py-5 bg-gradient-to-r from-cyan-600 to-indigo-700 hover:from-cyan-700 hover:to-indigo-800 text-white font-bold text-lg rounded-2xl shadow-xl shadow-cyan-500/20 transition-all duration-300 flex items-center justify-center space-x-3"
                     >
                       <span>Continue →</span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -680,7 +636,7 @@ const App = () => {
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={handleNext}
-                          className="px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/20 transition-all duration-300"
+                          className="px-10 py-4 bg-gradient-to-r from-cyan-600 to-indigo-700 hover:from-cyan-700 hover:to-indigo-800 text-white font-bold rounded-2xl shadow-xl shadow-cyan-500/20 transition-all duration-300"
                         >
                           Next: Solvers Compete
                         </motion.button>
@@ -693,7 +649,7 @@ const App = () => {
                 {state.step === 3 && (
                   <div>
                     <motion.h2 
-                      className="text-4xl font-black mb-8 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+                      className="text-4xl font-black mb-8 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 bg-clip-text text-transparent"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
@@ -704,8 +660,8 @@ const App = () => {
                     {state.solvers.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 space-y-8">
                         <div className="w-24 h-24 relative">
-                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full animate-pulse"></div>
-                          <div className="absolute inset-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full animate-ping"></div>
+                          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-full animate-pulse"></div>
+                          <div className="absolute inset-2 bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-full animate-ping"></div>
                           <div className="absolute inset-4 bg-white/10 rounded-full"></div>
                         </div>
                         <h3 className="text-2xl font-bold text-gray-300">Waiting for solvers to bid...</h3>
@@ -713,16 +669,16 @@ const App = () => {
                           Multiple decentralized solvers are scanning your intent and submitting competitive prices in real-time.
                         </p>
 
-                        {/* Chain Connection Animation */}
+                        {/* Chain Connection Animation — Smooth, Contained */}
                         <div className="mt-12 w-full max-w-md">
                           <div className="flex items-center justify-between">
-                            <div className="px-5 py-3 bg-gradient-to-r from-indigo-900/40 to-indigo-800/40 rounded-2xl border border-indigo-500/30 backdrop-blur-sm">
-                              <span className="text-indigo-200 font-medium">{state.intentData.chainIn}</span>
+                            <div className="px-5 py-3 bg-gradient-to-r from-cyan-900/40 to-cyan-800/40 rounded-2xl border border-cyan-500/30 backdrop-blur-sm">
+                              <span className="text-cyan-200 font-medium">{state.intentData.chainIn}</span>
                             </div>
                             <div className="flex-1 mx-6 relative h-1">
-                              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full"></div>
+                              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-full"></div>
                               <motion.div 
-                                className="absolute top-0 left-0 w-3 h-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-lg"
+                                className="absolute top-0 left-0 w-3 h-3 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full shadow-lg"
                                 animate={{ 
                                   x: [0, 200, 400], 
                                   opacity: [1, 0.7, 0] 
@@ -734,8 +690,8 @@ const App = () => {
                                 }}
                               />
                             </div>
-                            <div className="px-5 py-3 bg-gradient-to-r from-purple-900/40 to-pink-800/40 rounded-2xl border border-purple-500/30 backdrop-blur-sm">
-                              <span className="text-purple-200 font-medium">{state.intentData.chainOut}</span>
+                            <div className="px-5 py-3 bg-gradient-to-r from-indigo-900/40 to-purple-800/40 rounded-2xl border border-indigo-500/30 backdrop-blur-sm">
+                              <span className="text-indigo-200 font-medium">{state.intentData.chainOut}</span>
                             </div>
                           </div>
                         </div>
@@ -826,7 +782,7 @@ const App = () => {
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={handleNext}
-                          className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold text-lg rounded-2xl shadow-xl shadow-indigo-500/20 transition-all duration-300 flex items-center justify-center space-x-3"
+                          className="w-full py-5 bg-gradient-to-r from-cyan-600 to-indigo-700 hover:from-cyan-700 hover:to-indigo-800 text-white font-bold text-lg rounded-2xl shadow-xl shadow-cyan-500/20 transition-all duration-300 flex items-center justify-center space-x-3"
                         >
                           <span>Proceed to Settlement</span>
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -851,7 +807,7 @@ const App = () => {
                 {state.step === 4 && (
                   <div className="text-center">
                     <motion.h2 
-                      className="text-4xl font-black mb-8 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+                      className="text-4xl font-black mb-8 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 bg-clip-text text-transparent"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
@@ -863,22 +819,22 @@ const App = () => {
                       <>
                         <div className="flex flex-col items-center space-y-8">
                           <div className="relative">
-                            <div className="w-20 h-20 border-4 border-indigo-500/30 rounded-full animate-pulse"></div>
-                            <div className="absolute inset-0 w-20 h-20 border-4 border-indigo-400/50 rounded-full animate-spin"></div>
-                            <div className="absolute inset-4 w-12 h-12 border-4 border-indigo-300/40 rounded-full animate-ping"></div>
+                            <div className="w-20 h-20 border-4 border-cyan-500/30 rounded-full animate-pulse"></div>
+                            <div className="absolute inset-0 w-20 h-20 border-4 border-cyan-400/50 rounded-full animate-spin"></div>
+                            <div className="absolute inset-4 w-12 h-12 border-4 border-cyan-300/40 rounded-full animate-ping"></div>
                           </div>
                           <h3 className="text-2xl font-bold text-gray-300">Settling Your Swap...</h3>
                           <p className="text-gray-400 max-w-md">
                             The winning solver is finalizing your transaction on-chain. No gas fee incurred.
                           </p>
 
-                          {/* API Call Animation — Replaces spinner with elegant data flow */}
+                          {/* API Call Animation — Fluid, Contained, Elegant */}
                           <div className="mt-12 w-full max-w-2xl">
                             <div className="flex flex-wrap justify-center gap-4">
                               {state.apiCalls.map((call, idx) => (
                                 <motion.div
                                   key={call.id}
-                                  className="relative w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-bold shadow-xl"
+                                  className="relative w-20 h-20 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold shadow-xl"
                                   initial={{ x: -100, opacity: 0 }}
                                   animate={{ 
                                     x: [0, 200, 400, 600, 800], 
@@ -920,7 +876,7 @@ const App = () => {
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-400">Solver:</span>
-                                <span className="text-indigo-300">{state.bestSolver?.name}</span>
+                                <span className="text-cyan-300">{state.bestSolver?.name}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-400">Expiry:</span>
@@ -981,7 +937,7 @@ const App = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={resetDemo}
-                          className="px-12 py-5 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold text-xl rounded-2xl shadow-xl shadow-indigo-500/20 transition-all duration-300"
+                          className="px-12 py-5 bg-gradient-to-r from-cyan-600 to-indigo-700 hover:from-cyan-700 hover:to-indigo-800 text-white font-bold text-xl rounded-2xl shadow-xl shadow-cyan-500/20 transition-all duration-300"
                         >
                           Start New Swap
                         </motion.button>
@@ -1003,7 +959,7 @@ const App = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={resetDemo}
-                          className="px-12 py-5 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold text-xl rounded-2xl shadow-xl shadow-indigo-500/20 transition-all duration-300"
+                          className="px-12 py-5 bg-gradient-to-r from-cyan-600 to-indigo-700 hover:from-cyan-700 hover:to-indigo-800 text-white font-bold text-xl rounded-2xl shadow-xl shadow-cyan-500/20 transition-all duration-300"
                         >
                           Try Again
                         </motion.button>
@@ -1023,7 +979,7 @@ const App = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">Recent Swaps</h3>
+              <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Recent Swaps</h3>
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {state.swapHistory.map((swap, index) => (
                   <motion.div
@@ -1034,7 +990,7 @@ const App = () => {
                     className="p-4 bg-gradient-to-r from-white/5 to-transparent border border-white/10 rounded-xl flex justify-between items-center hover:bg-white/10 transition-all duration-300"
                   >
                     <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
                         {swap.tokenIn.substring(0, 2)}
                       </div>
                       <div>
@@ -1058,9 +1014,9 @@ const App = () => {
         </main>
       </div>
 
-      {/* API Simulation Section */}
+      {/* API Specification Section */}
       <section className="max-w-7xl mx-auto p-8 mt-12 border-t border-white/10 pt-8">
-        <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">API Specification</h2>
+        <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">API Specification</h2>
         <div className="bg-gradient-to-r from-gray-900/60 to-gray-950/60 rounded-2xl p-6 border border-white/10 overflow-x-auto">
           <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
 {`POST /v1/intents
@@ -1085,11 +1041,11 @@ const App = () => {
             href="https://x.com/fz_aamir" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+            className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
           >
             @fz_aamir
           </a>
-          — A 2025-native DeFi interface built for elegance and performance.
+          — A 2025-native DeFi interface built for elegance, performance, and immersion.
         </p>
       </footer>
     </div>
