@@ -1,3 +1,4 @@
+// App.js — FINAL 2025 PROFESSIONAL VERSION (Dark Only, Liquid BG, No Logo, Fixed Dropdowns)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -30,9 +31,7 @@ const App = () => {
         { id: 1, name: 'First Swap', description: 'Complete your first token swap', unlocked: false },
         { id: 2, name: 'Cross-chain Explorer', description: 'Swap between different chains', unlocked: false },
         { id: 3, name: 'MEV Protector', description: 'Complete 5 gasless swaps', unlocked: false }
-      ],
-      darkMode: true, // Hardcoded — no toggle
-      showParticles: true
+      ]
     };
   };
 
@@ -217,7 +216,7 @@ const App = () => {
   // Calculate price impact (memoized)
   const calculatePriceImpact = useMemo(() => Math.random() * 2, [state.step]);
 
-  // Liquid Gradient Background Component
+  // Liquid Gradient Background Component — NO BUBBLES, NO STATIC GRADIENTS
   const LiquidBackground = () => (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       {/* Main Animated Gradient */}
